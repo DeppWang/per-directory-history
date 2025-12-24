@@ -56,14 +56,16 @@
 # configuration, the base under which the directory histories are stored
 #-------------------------------------------------------------------------------
 
+# Chinese: 配置区，设置历史文件的基础目录、默认状态以及快捷键
 [[ -z $HISTORY_BASE ]] && HISTORY_BASE="$HOME/.directory_history"
-[[ -z $HISTORY_START_WITH_GLOBAL ]] && HISTORY_START_WITH_GLOBAL=false
+[[ -z $HISTORY_START_WITH_GLOBAL ]] && HISTORY_START_WITH_GLOBAL=true
 [[ -z $PER_DIRECTORY_HISTORY_TOGGLE ]] && PER_DIRECTORY_HISTORY_TOGGLE='^G'
 
 #-------------------------------------------------------------------------------
 # toggle global/directory history used for searching - ctrl-G by default
 #-------------------------------------------------------------------------------
 
+# Chinese: 快捷键切换当前使用的历史文件（全局或当前目录）
 function per-directory-history-toggle-history() {
   if [[ $_per_directory_history_is_global == true ]]; then
     _per-directory-history-set-directory-history
@@ -89,6 +91,7 @@ bindkey -M vicmd "$PER_DIRECTORY_HISTORY_TOGGLE" per-directory-history-toggle-hi
 
 _per_directory_history_directory="$HISTORY_BASE${PWD:A}/history"
 
+# Chinese: 切换目录时写回旧目录历史并加载新目录历史
 function _per-directory-history-change-directory() {
   _per_directory_history_directory="$HISTORY_BASE${PWD:A}/history"
   mkdir -p "${_per_directory_history_directory:h}"
@@ -112,23 +115,21 @@ function _per-directory-history-change-directory() {
   fi
 }
 
+# Chinese: 控制每条命令追加到对应目录的历史文件，同时保持全局历史同步
 function _per-directory-history-addhistory() {
   # respect hist_ignore_space
   if [[ -o hist_ignore_space ]] && [[ "$1" == \ * ]]; then
       true
   else
       print -Sr -- "${1%%$'\n'}"
-      # instantly write history if set options require it.
-      if [[ -o share_history ]] || \
-         [[ -o inc_append_history ]] || \
-         [[ -o inc_append_history_time ]]; then
-          fc -AI "$HISTFILE"
-          fc -AI "$_per_directory_history_directory"
-      fi
+      # Always save to both global and directory history
+      fc -AI "$HISTFILE"
+      fc -AI "$_per_directory_history_directory"
       fc -p "$_per_directory_history_directory"
   fi
 }
 
+# Chinese: 首次 prompt 前根据配置决定使用全局或目录历史
 function _per-directory-history-precmd() {
   if [[ $_per_directory_history_initialized == false ]]; then
     _per_directory_history_initialized=true
@@ -143,6 +144,7 @@ function _per-directory-history-precmd() {
   fi
 }
 
+# Chinese: 切换到当前目录历史（先清空缓存，再读入目录历史文件）
 function _per-directory-history-set-directory-history() {
   fc -AI "$HISTFILE"
   local original_histsize=$HISTSIZE
@@ -153,6 +155,7 @@ function _per-directory-history-set-directory-history() {
   fi
 }
 
+# Chinese: 切换回全局历史（先写出目录历史，再读入全局历史）
 function _per-directory-history-set-global-history() {
   fc -AI "$_per_directory_history_directory"
   local original_histsize=$HISTSIZE
@@ -163,9 +166,11 @@ function _per-directory-history-set-global-history() {
   fi
 }
 
+# Chinese: 确保当前目录对应的历史文件目录存在
 mkdir -p "${_per_directory_history_directory:h}"
 
 #add functions to the exec list for chpwd and zshaddhistory
+# Chinese: 将自定义函数挂接到 zsh 钩子，接管切目录、追加历史和首次 prompt 的行为
 autoload -U add-zsh-hook
 add-zsh-hook chpwd _per-directory-history-change-directory
 add-zsh-hook zshaddhistory _per-directory-history-addhistory
